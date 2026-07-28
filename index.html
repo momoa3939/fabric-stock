@@ -208,6 +208,28 @@ function loadData(){
 }
 function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
+/* ---------- 購入先オートコンプリート履歴(生地データとは別キーで管理) ---------- */
+const SHOP_HISTORY_KEY = "fabricStockShopHistory";
+function loadShopHistory(){
+  try{
+    const raw = localStorage.getItem(SHOP_HISTORY_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return [];
+}
+function saveShopHistory(list){ localStorage.setItem(SHOP_HISTORY_KEY, JSON.stringify(list)); }
+function addShopToHistory(name){
+  if(!name) return;
+  let list = loadShopHistory().filter(s => s !== name);
+  list.unshift(name);
+  if(list.length > 30) list = list.slice(0, 30);
+  saveShopHistory(list);
+}
+function removeShopFromHistory(name){
+  const list = loadShopHistory().filter(s => s !== name);
+  saveShopHistory(list);
+}
+
 const NATURE_PALETTE = ["#CFDFDE","#F4E9EA","#E2C5C8","#D6C6E0","#C8DDBA","#F6E6A6","#CFC9BE","#BFD6E8"];
 const NATURE_PALETTE_TEXT = {
   "#CFDFDE":"#3f5654", "#F4E9EA":"#8a6f72", "#E2C5C8":"#7a4f52", "#D6C6E0":"#5f4a6b",
@@ -393,6 +415,12 @@ function iconUp(){
 function iconDown(){
   return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
 }
+function iconExport(){
+  return `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>`;
+}
+function iconImport(){
+  return `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M17 14l-5-5-5 5"/><path d="M4 5h16"/></svg>`;
+}
 
 function escapeHtml(s){
   const d = document.createElement("div");
@@ -469,15 +497,23 @@ function renderSettings(){
       <button class="btn btn-secondary" id="add-tag" style="margin-top:8px;">＋ 新しいタグを追加</button>
 
       <div class="section-title" style="margin-top:24px;">データのバックアップ</div>
-      <button class="btn btn-secondary" id="btn-export">バックアップを書き出す(JSON)</button>
-      <button class="btn btn-secondary" id="btn-import">バックアップから復元する</button>
+      <button class="btn btn-secondary" id="btn-export" style="display:flex; align-items:center; justify-content:center; gap:8px;">${iconExport()}<span>バックアップを書き出す(JSON)</span></button>
+      <button class="btn btn-secondary" id="btn-import" style="display:flex; align-items:center; justify-content:center; gap:8px;">${iconImport()}<span>バックアップから復元する</span></button>
       <input type="file" id="file-import" accept="application/json" style="display:none;">
+
+      <div class="section-title" style="margin-top:24px;">アプリの調子が悪いとき</div>
+      <p style="font-size:12px; color:var(--text-mute); margin:0 0 8px;">
+        表示がおかしい・更新されないなどの不具合がある時にお試しください。
+        アプリの表示データ(キャッシュ)だけをリセットします。生地の登録データが消えることはありません。
+      </p>
+      <button class="btn btn-secondary" id="btn-cache-reset">表示データをリセットする</button>
     </div>
   `;
 
   document.getElementById("btn-export").onclick = exportBackup;
   document.getElementById("btn-import").onclick = ()=> document.getElementById("file-import").click();
   document.getElementById("file-import").onchange = importBackup;
+  document.getElementById("btn-cache-reset").onclick = resetAppCache;
 
   const matListEl = document.getElementById("material-list");
   matListEl.innerHTML = state.materials.map((m, idx)=>`
@@ -646,6 +682,24 @@ function importBackup(e){
   reader.readAsText(file);
 }
 
+function resetAppCache(){
+  if(!confirm("表示データ(キャッシュ)をリセットします。生地の登録データは消えません。よろしいですか?")) return;
+  const doReload = ()=> location.reload();
+  if("caches" in window){
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).finally(()=>{
+      if("serviceWorker" in navigator){
+        navigator.serviceWorker.getRegistrations().then(regs=>{
+          Promise.all(regs.map(r=>r.unregister())).finally(doReload);
+        }).catch(doReload);
+      } else {
+        doReload();
+      }
+    });
+  } else {
+    doReload();
+  }
+}
+
 /* ---------- sheet helper ---------- */
 function openSheet(html){
   const wrap = document.createElement("div");
@@ -678,8 +732,8 @@ function resizeImage(file, maxDim=900){
   });
 }
 
-/* ---------- fabric form (add/edit) ---------- */
-function openFabricForm(existing){
+/* ---------- fabric form (add/edit/copy) ---------- */
+function openFabricForm(existing, copySource){
   const isEdit = !!existing;
   const f = existing ? {
     ...existing,
@@ -688,15 +742,29 @@ function openFabricForm(existing){
     composition: Array.isArray(existing.composition)
       ? existing.composition.map(c=>({...c}))
       : (existing.composition ? [{material: existing.composition, percent:""}] : [])
+  } : (copySource ? {
+    id: uid(),
+    name: "",
+    material: copySource.material || (state.materials[0]||""),
+    tags: [...(copySource.tags||[])],
+    boughtLength: "",
+    remainingLength: "",
+    purchaseDate: "",
+    shop: copySource.shop || "",
+    composition: Array.isArray(copySource.composition) ? copySource.composition.map(c=>({...c})) : [],
+    width: copySource.width || "",
+    memo: copySource.memo || "",
+    photos: []
   } : {
     id: uid(), name:"", material: state.materials[0]||"", tags:[], boughtLength:"", remainingLength:"",
     purchaseDate:"", shop:"", composition:[], width:"", memo:"", photos:[]
-  };
+  });
+  let remainManuallyEdited = false;
 
   const matOptions = state.materials.map(m=>`<option value="${m}" ${m===f.material?'selected':''}>${m}</option>`).join("");
 
   const html = `
-    <div class="sheet-title"><span>${isEdit?'生地を編集':'生地を追加'}</span><span id="close-sheet" style="cursor:pointer; color:var(--text-sub);">✕</span></div>
+    <div class="sheet-title"><span>${isEdit?'生地を編集':(copySource?'コピーして追加':'生地を追加')}</span><span id="close-sheet" style="cursor:pointer; color:var(--text-sub);">✕</span></div>
 
     <label class="field-label">写真(最大3枚)</label>
     <div class="photo-row" id="photo-row"></div>
@@ -721,7 +789,10 @@ function openFabricForm(existing){
     <input type="date" id="f-date" value="${f.purchaseDate}">
 
     <label class="field-label">購入先</label>
-    <input type="text" id="f-shop" value="${escapeHtml(f.shop)}" placeholder="例: ○○生地屋さん">
+    <div style="position:relative;">
+      <input type="text" id="f-shop" autocomplete="off" value="${escapeHtml(f.shop)}" placeholder="例: ○○生地屋さん">
+      <div id="shop-suggestions" style="display:none; position:absolute; left:0; right:0; top:calc(100% + 4px); background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.08); z-index:5; max-height:180px; overflow-y:auto;"></div>
+    </div>
 
     <label class="field-label">組成</label>
     <div id="composition-rows"></div>
@@ -780,6 +851,44 @@ function openFabricForm(existing){
     });
   }
   renderTagSelect();
+
+  // 購入時のメートル数 → 残りメートル数への自動反映(新規追加時のみ・手動編集後は止める)
+  if(!isEdit){
+    const boughtInput = wrap.querySelector("#f-bought");
+    const remainInput = wrap.querySelector("#f-remain");
+    remainInput.addEventListener("input", ()=>{ remainManuallyEdited = true; });
+    boughtInput.addEventListener("input", ()=>{
+      if(!remainManuallyEdited){ remainInput.value = boughtInput.value; }
+    });
+  }
+
+  // 購入先オートコンプリート
+  const shopInput = wrap.querySelector("#f-shop");
+  const shopSuggestEl = wrap.querySelector("#shop-suggestions");
+  function renderShopSuggestions(){
+    const kw = shopInput.value.trim();
+    const list = loadShopHistory().filter(s => !kw || s.includes(kw));
+    if(list.length === 0){ shopSuggestEl.style.display = "none"; shopSuggestEl.innerHTML=""; return; }
+    shopSuggestEl.innerHTML = list.map(s => `
+      <div class="shop-suggest-item" data-shop="${escapeHtml(s)}" style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; font-size:14px; cursor:pointer;">
+        <span data-pick="${escapeHtml(s)}" style="flex:1;">${escapeHtml(s)}</span>
+        <span class="row-icon danger" data-remove-shop="${escapeHtml(s)}" style="margin-left:8px; font-size:12px;">✕</span>
+      </div>`).join("");
+    shopSuggestEl.style.display = "block";
+    shopSuggestEl.querySelectorAll("[data-pick]").forEach(el=>{
+      el.onclick = ()=>{ shopInput.value = el.dataset.pick; shopSuggestEl.style.display = "none"; };
+    });
+    shopSuggestEl.querySelectorAll("[data-remove-shop]").forEach(el=>{
+      el.onclick = (ev)=>{
+        ev.stopPropagation();
+        removeShopFromHistory(el.dataset.removeShop);
+        renderShopSuggestions();
+      };
+    });
+  }
+  shopInput.addEventListener("focus", renderShopSuggestions);
+  shopInput.addEventListener("input", renderShopSuggestions);
+  shopInput.addEventListener("blur", ()=>{ setTimeout(()=>{ shopSuggestEl.style.display = "none"; }, 150); });
 
   function renderCompositionRows(){
     const rowsEl = wrap.querySelector("#composition-rows");
@@ -840,6 +949,8 @@ function openFabricForm(existing){
     f.memo = wrap.querySelector("#f-memo").value.trim();
 
     if(!f.name){ alert("生地名を入力してください"); return; }
+
+    addShopToHistory(f.shop);
 
     if(isEdit){
       const idx = state.fabrics.findIndex(x=>x.id===f.id);
@@ -905,11 +1016,13 @@ function openFabricDetail(id){
 
     <button class="btn btn-primary" id="add-usage">この生地を使ったよ</button>
     <button class="btn btn-secondary" id="edit-fabric">この生地を編集</button>
+    <button class="btn btn-secondary" id="copy-fabric">色違いをコピーして追加</button>
   `;
   const wrap = openSheet(html);
   wrap.querySelector("#close-sheet").onclick = ()=> closeSheet(wrap);
   wrap.querySelector("#add-usage").onclick = ()=>{ closeSheet(wrap); openUsageForm(f.id); };
   wrap.querySelector("#edit-fabric").onclick = ()=>{ closeSheet(wrap); openFabricForm(f); };
+  wrap.querySelector("#copy-fabric").onclick = ()=>{ closeSheet(wrap); openFabricForm(null, f); };
 }
 
 /* ---------- usage form ---------- */
