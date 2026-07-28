@@ -820,8 +820,8 @@ function openFabricForm(existing, copySource){
     <label class="field-label">生地幅</label>
     <input type="text" id="f-width" value="${escapeHtml(f.width||'')}" placeholder="例: 約145cm前後">
 
-    <label class="field-label" style="display:flex; align-items:center; gap:4px;">メモ ${iconPencil()}</label>
-    <textarea id="f-memo" placeholder="ひとことメモ、どうぞ">${escapeHtml(f.memo)}</textarea>
+    <label class="field-label" style="display:flex; align-items:center; gap:4px;">ひとことメモ ${iconPencil()}</label>
+    <textarea id="f-memo" placeholder="">${escapeHtml(f.memo)}</textarea>
 
     <button class="btn btn-primary" id="save-fabric">${isEdit?'保存する':'追加する'}</button>
     ${isEdit ? '<button class="btn btn-danger-outline" id="delete-fabric">この生地を削除</button>' : ''}
