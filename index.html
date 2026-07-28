@@ -415,12 +415,6 @@ function iconUp(){
 function iconDown(){
   return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
 }
-function iconExport(){
-  return `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>`;
-}
-function iconImport(){
-  return `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M17 14l-5-5-5 5"/><path d="M4 5h16"/></svg>`;
-}
 
 function escapeHtml(s){
   const d = document.createElement("div");
@@ -497,8 +491,10 @@ function renderSettings(){
       <button class="btn btn-secondary" id="add-tag" style="margin-top:8px;">＋ 新しいタグを追加</button>
 
       <div class="section-title" style="margin-top:24px;">データのバックアップ</div>
-      <button class="btn btn-secondary" id="btn-export" style="display:flex; align-items:center; justify-content:center; gap:8px;">${iconExport()}<span>バックアップを書き出す(JSON)</span></button>
-      <button class="btn btn-secondary" id="btn-import" style="display:flex; align-items:center; justify-content:center; gap:8px;">${iconImport()}<span>バックアップから復元する</span></button>
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn btn-secondary" id="btn-export" style="margin-top:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 8px;"><span style="font-size:22px;">📦</span><span>バックアップ保存</span></button>
+        <button class="btn btn-secondary" id="btn-import" style="margin-top:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 8px;"><span style="font-size:22px;">🔄</span><span>復元する</span></button>
+      </div>
       <input type="file" id="file-import" accept="application/json" style="display:none;">
 
       <div class="section-title" style="margin-top:24px;">アプリの調子が悪いとき</div>
