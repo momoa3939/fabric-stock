@@ -133,10 +133,6 @@
     font-size:16px; font-family:inherit; background:#fff; color:var(--text);
   }
   textarea{ resize:vertical; min-height:56px; }
-  .memo-pencil-icon{
-    display:none; position:absolute; top:12px; left:118px; color:var(--text-mute); pointer-events:none;
-  }
-  #f-memo:placeholder-shown ~ .memo-pencil-icon{ display:inline-flex; }
   input[type=number]{ -moz-appearance:textfield; }
   input[type=number]::-webkit-outer-spin-button,
   input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
@@ -826,8 +822,10 @@ function openFabricForm(existing, copySource){
 
     <label class="field-label">メモ</label>
     <div style="position:relative;">
-      <textarea id="f-memo" placeholder="ひとことメモ">${escapeHtml(f.memo)}</textarea>
-      <span class="memo-pencil-icon">${iconPencil()}</span>
+      <textarea id="f-memo" placeholder="">${escapeHtml(f.memo)}</textarea>
+      <div id="memo-fake-placeholder" style="position:absolute; top:9px; left:10px; display:flex; align-items:center; gap:4px; color:var(--text-mute); pointer-events:none; font-size:16px;">
+        <span>ひとことメモ</span>${iconPencil()}
+      </div>
     </div>
 
     <button class="btn btn-primary" id="save-fabric">${isEdit?'保存する':'追加する'}</button>
@@ -861,6 +859,16 @@ function openFabricForm(existing, copySource){
     e.target.value = "";
   };
   renderPhotoRow();
+
+  // メモ欄:偽プレースホルダー(テキスト+アイコン)の表示切替
+  const memoInput = wrap.querySelector("#f-memo");
+  const memoFakePlaceholder = wrap.querySelector("#memo-fake-placeholder");
+  function updateMemoPlaceholder(){
+    memoFakePlaceholder.style.display = memoInput.value.trim()==="" ? "flex" : "none";
+  }
+  memoInput.addEventListener("input", updateMemoPlaceholder);
+  memoFakePlaceholder.onclick = ()=> memoInput.focus();
+  updateMemoPlaceholder();
 
   const tagsWrap = wrap.querySelector("#f-tags");
   function renderTagSelect(){
