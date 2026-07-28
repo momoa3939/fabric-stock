@@ -4,10 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#CFDFDE">
-<title>生地ストック</title>
+<title>Fabric Note</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
 <style>
   :root{
     --accent:#CFDFDE;
@@ -42,7 +45,8 @@
     background:#fff; border-bottom:1px solid var(--border);
     padding:12px 14px;
   }
-  #topbar .title{font-weight:600; font-size:17px;}
+  #topbar .title{font-weight:600; font-size:17px; font-family:"Zen Maru Gothic",sans-serif;}
+  .brand-font{ font-family:"Marcellus",serif; letter-spacing:0.03em; }
   .icon-btn{
     background:none; border:none; font-size:20px; color:var(--accent-dark);
     padding:4px 8px; cursor:pointer; line-height:1;
@@ -61,6 +65,28 @@
   .chip.active{ background:var(--accent); color:#2e4644; border-color:var(--accent);}
   #tagfilterbar{ display:flex; gap:6px; padding:0 14px 10px; }
   #list{ padding:0 14px; }
+  body.view-history #list{ padding-top:12px; }
+
+  /* guide / about pages (item e) */
+  .info-page{ padding:8px 20px 28px; }
+  .info-hero{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:20px 10px 8px; }
+  .info-hero img{ width:110px; height:110px; object-fit:contain; margin-bottom:10px; }
+  .info-hero .info-lead{ font-size:14px; color:var(--text-sub); max-width:280px; margin:0; }
+  .info-brand{ font-size:22px; text-align:center; margin:4px 0 18px; color:var(--text); }
+  .guide-item{ display:flex; gap:12px; padding:16px 0; border-bottom:1px solid var(--border); }
+  .guide-item:last-child{ border-bottom:none; }
+  .guide-num{
+    flex-shrink:0; width:26px; height:26px; border-radius:50%; background:var(--accent);
+    color:#2e4644; font-size:13px; font-weight:600; display:flex; align-items:center; justify-content:center;
+  }
+  .guide-body .guide-title{ font-size:15px; font-weight:600; margin:0 0 4px; }
+  .guide-body p{ font-size:14px; color:var(--text-sub); margin:0 0 4px; line-height:1.6; }
+  .guide-body .guide-tip{ font-size:13px; color:var(--text-mute); margin:6px 0 0; }
+  .about-copy{ font-size:14px; color:var(--text); line-height:1.9; text-align:center; margin:0 0 22px; }
+  .about-section{ margin:0 0 18px; }
+  .about-section .about-heading{ font-size:14px; font-weight:600; margin:0 0 6px; display:flex; align-items:center; gap:6px; }
+  .about-section p{ font-size:13.5px; color:var(--text-sub); line-height:1.8; margin:0; }
+  .about-closing{ text-align:center; font-size:14px; color:var(--text); margin:24px 0 0; }
   .group-title{ font-size:13px; color:var(--text-mute); margin:14px 0 6px; }
   .fabric-card{
     display:flex; gap:12px; background:var(--card); border:1px solid var(--border);
@@ -96,7 +122,7 @@
     width:14px; height:14px; background:#fff; border-left:1px solid var(--border); border-top:1px solid var(--border);
   }
   .empty-fabric-bubble .line1{ font-size:15px; color:var(--text); font-weight:600; margin:0 0 4px; }
-  .empty-fabric-bubble .line2{ font-size:13px; color:var(--text-mute); margin:0; }
+  .empty-fabric-bubble .line2{ font-size:13px; color:var(--text-sub); margin:0; }
 
   /* drawer */
   #overlay{
@@ -190,7 +216,7 @@
 
 <div id="topbar">
   <button class="icon-btn" id="btn-menu" aria-label="メニュー">☰</button>
-  <span class="title" id="page-title">生地ストック</span>
+  <span class="title" id="page-title">Fabric Note</span>
   <button class="icon-btn" id="btn-add" aria-label="追加">＋</button>
 </div>
 
@@ -205,6 +231,8 @@
   <div class="drawer-item" data-nav="home">📋 生地一覧</div>
   <div class="drawer-item" data-nav="history">🕘 使った履歴</div>
   <div class="drawer-item" data-nav="settings">⚙️ 設定</div>
+  <div class="drawer-item" data-nav="guide">📖 使い方</div>
+  <div class="drawer-item" data-nav="about">ℹ️ このアプリについて</div>
 </div>
 
 <div id="toast"></div>
@@ -321,7 +349,8 @@ function navigate(view){
 }
 
 /* ---------- top add button ---------- */
-document.getElementById("btn-add").onclick = ()=>{
+const btnAddEl = document.getElementById("btn-add");
+btnAddEl.onclick = ()=>{
   if(currentView === "history"){
     openUsageForm();
   } else {
@@ -331,8 +360,11 @@ document.getElementById("btn-add").onclick = ()=>{
 
 /* ---------- render router ---------- */
 function render(){
+  document.body.classList.toggle("view-history", currentView === "history");
+  pageTitleEl.classList.toggle("brand-font", currentView === "home");
+  btnAddEl.style.visibility = (currentView === "guide" || currentView === "about") ? "hidden" : "visible";
   if(currentView === "home"){
-    pageTitleEl.textContent = "生地ストック";
+    pageTitleEl.textContent = "Fabric Note";
     renderHome();
   } else if(currentView === "history"){
     pageTitleEl.textContent = "使った履歴";
@@ -340,6 +372,12 @@ function render(){
   } else if(currentView === "settings"){
     pageTitleEl.textContent = "設定";
     renderSettings();
+  } else if(currentView === "guide"){
+    pageTitleEl.textContent = "使い方";
+    renderGuide();
+  } else if(currentView === "about"){
+    pageTitleEl.textContent = "このアプリについて";
+    renderAbout();
   }
 }
 
@@ -490,6 +528,80 @@ function renderHistory(){
       renderHistory();
     };
   });
+}
+
+/* ---------- guide view (使い方) ---------- */
+function renderGuide(){
+  filterbarEl.style.display = "none";
+  tagfilterbarEl.style.display = "none";
+  filterbarEl.innerHTML = "";
+  tagfilterbarEl.innerHTML = "";
+  emptyMsgEl.style.display = "none";
+
+  const items = [
+    { title:"生地を登録する", tip:"📷 写真は自動で軽量化されるので、スマホの容量を気にせず登録できます。",
+      body:"右上の「＋」から新しい生地を登録できます。写真・素材・用途・長さ・購入情報などを入力して、お気に入りの生地を記録しましょう。" },
+    { title:"一覧から探す", tip:null,
+      body:"登録した生地は一覧で確認できます。素材やタグで絞り込めるので、探したい生地もすぐに見つかります。上部のチップをタップして切り替えてください。" },
+    { title:"使った履歴を記録する", tip:null,
+      body:"生地を使ったら「使った履歴」を記録しましょう。使った長さに合わせて、残りのメートル数が自動で更新されます。在庫管理がぐっと楽になります。" },
+    { title:"素材・タグを管理する", tip:null,
+      body:"設定画面から素材や用途タグの追加・編集ができます。よく使う分類を登録しておくと、生地を探しやすくなります。" },
+    { title:"バックアップを取る", tip:null,
+      body:"設定画面の「データのバックアップ」から、登録データを保存できます。機種変更や万が一に備えて、定期的なバックアップをおすすめします。" },
+    { title:"うまく動かないときは", tip:null,
+      body:"表示がおかしいときやエラーが発生したときは、設定画面の「アプリの調子が悪いとき」をご確認ください。多くのトラブルは、この画面から改善できます。" }
+  ];
+
+  listEl.innerHTML = `
+    <div class="info-page">
+      <div class="info-hero">
+        <img src="hedgehog-empty.png" alt="">
+        <p class="info-lead">はじめてでも大丈夫。Fabric Noteの基本的な使い方をご紹介します。</p>
+      </div>
+      ${items.map((it,i)=>`
+        <div class="guide-item">
+          <div class="guide-num">${i+1}</div>
+          <div class="guide-body">
+            <p class="guide-title">${escapeHtml(it.title)}</p>
+            <p>${escapeHtml(it.body)}</p>
+            ${it.tip ? `<p class="guide-tip">${escapeHtml(it.tip)}</p>` : ""}
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
+
+/* ---------- about view (このアプリについて) ---------- */
+function renderAbout(){
+  filterbarEl.style.display = "none";
+  tagfilterbarEl.style.display = "none";
+  filterbarEl.innerHTML = "";
+  tagfilterbarEl.innerHTML = "";
+  emptyMsgEl.style.display = "none";
+
+  listEl.innerHTML = `
+    <div class="info-page">
+      <div class="info-hero">
+        <img src="hedgehog-empty.png" alt="">
+      </div>
+      <p class="info-brand brand-font">Fabric Note</p>
+      <p class="about-copy">お気に入りの生地を、やさしく管理するためのアプリです。<br>
+      使いたい生地、買ったばかりの生地、大切に残しておきたい生地。<br>
+      「あの生地、どこにしまったかな？」<br>
+      そんな時に、そっと役立つノートになれたら嬉しいです。</p>
+
+      <div class="about-section">
+        <p class="about-heading">🔒 データについて</p>
+        <p>Fabric Noteに登録したデータは、すべてお使いの端末内だけに保存されます。外部サーバーへ送信されたり、共有されたりすることはありません。安心してご利用ください。</p>
+      </div>
+
+      <div class="about-section">
+        <p class="about-heading">💾 バックアップ</p>
+        <p>端末の故障や機種変更に備え、定期的なバックアップをおすすめしています。大切な記録を守るためにも、バックアップを保存しておくと安心です。</p>
+      </div>
+
+      <p class="about-closing">🦔「大切な生地、一緒に見守るよ。」</p>
+    </div>`;
 }
 
 /* ---------- settings view ---------- */
