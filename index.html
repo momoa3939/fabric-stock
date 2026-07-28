@@ -352,7 +352,7 @@ function renderHome(){
       const bought = parseFloat(f.boughtLength)||0;
       const remain = parseFloat(f.remainingLength)||0;
       const pct = bought>0 ? Math.max(0,Math.min(100, remain/bought*100)) : 0;
-      const barColor = pct < 25 ? "#F0E0E2" : (pct < 50 ? "#F6E6A6" : "#C8DDBA");
+      const barColor = pct < 25 ? "#EBD7D9" : (pct < 50 ? "#F6E6A6" : "#C8DDBA");
       const thumb = f.photos && f.photos[0]
         ? `<img src="${f.photos[0]}">`
         : `<img src="hedgehog-empty.png" alt="">`;
