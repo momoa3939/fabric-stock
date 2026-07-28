@@ -133,6 +133,10 @@
     font-size:16px; font-family:inherit; background:#fff; color:var(--text);
   }
   textarea{ resize:vertical; min-height:56px; }
+  .memo-pencil-icon{
+    display:none; position:absolute; top:12px; left:104px; color:var(--text-mute); pointer-events:none;
+  }
+  #f-memo:placeholder-shown ~ .memo-pencil-icon{ display:inline-flex; }
   input[type=number]{ -moz-appearance:textfield; }
   input[type=number]::-webkit-outer-spin-button,
   input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
@@ -820,8 +824,11 @@ function openFabricForm(existing, copySource){
     <label class="field-label">生地幅</label>
     <input type="text" id="f-width" value="${escapeHtml(f.width||'')}" placeholder="例: 約145cm前後">
 
-    <label class="field-label" style="display:flex; align-items:center; gap:4px;">ひとことメモ ${iconPencil()}</label>
-    <textarea id="f-memo" placeholder="">${escapeHtml(f.memo)}</textarea>
+    <label class="field-label">メモ</label>
+    <div style="position:relative;">
+      <textarea id="f-memo" placeholder="ひとことメモ">${escapeHtml(f.memo)}</textarea>
+      <span class="memo-pencil-icon">${iconPencil()}</span>
+    </div>
 
     <button class="btn btn-primary" id="save-fabric">${isEdit?'保存する':'追加する'}</button>
     ${isEdit ? '<button class="btn btn-danger-outline" id="delete-fabric">この生地を削除</button>' : ''}
