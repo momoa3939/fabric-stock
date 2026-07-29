@@ -45,7 +45,7 @@
     background:#fff; border-bottom:1px solid var(--border);
     padding:12px 14px;
   }
-  #topbar .title{font-weight:600; font-size:17px; font-family:"Hiragino Sans","Meiryo",sans-serif;}
+  #topbar .title{font-weight:600; font-size:17px; line-height:1.4; font-family:"Hiragino Sans","Meiryo",sans-serif;}
   .brand-font{ font-family:"Zen Maru Gothic",sans-serif; font-weight:700; letter-spacing:0; }
   #topbar .title.brand-font{ font-family:"Zen Maru Gothic",sans-serif; font-weight:700; font-size:22px; }
   .icon-btn{
@@ -88,6 +88,7 @@
   .about-intro{ max-width:22em; margin:0 auto 24px; text-align:center; }
   .about-intro .about-copy{ margin:0 0 16px; }
   .about-intro .about-copy:last-child{ margin-bottom:0; }
+  .about-divider{ border:none; border-top:1px solid var(--border); margin:20px 0; }
   .about-section{ margin:0 0 18px; }
   .about-section .about-heading{ font-size:14px; font-weight:600; margin:0 0 6px; display:flex; align-items:center; gap:6px; }
   .about-section p{ font-size:13.5px; color:var(--text-sub); line-height:1.8; margin:0; }
@@ -603,12 +604,38 @@ function renderAbout(){
         <p>Fabric Noteに登録したデータは、すべてお使いの端末内だけに保存されます。外部サーバーへ送信されたり、共有されたりすることはありません。安心してご利用ください。</p>
       </div>
 
+      <hr class="about-divider">
+
       <div class="about-section">
-        <p class="about-heading">💾 バックアップ</p>
-        <p>端末の故障や機種変更に備え、定期的なバックアップをおすすめしています。大切な記録を守るためにも、バックアップを保存しておくと安心です。</p>
+        <p class="about-heading">💾 バックアップについて</p>
+        <p>Fabric Noteの記録は、お使いの端末の中だけにそっとしまわれています。機種変更やブラウザのお引っ越しがあると、大切な記録が一緒についてきてくれないことも。</p>
+        <p style="margin-top:12px;">いつもそばにいてほしい記録は、設定画面の「データのバックアップ」から、ときどき保存しておくと安心です。保存したファイルは、iCloud・Googleドライブ・OneDrive・メールなど、ご自身の使いやすい場所に置いておいてくださいね。</p>
+        <p class="about-closing" style="margin-top:12px;">🦔「わたしも一緒に、大事に運ぶよ」</p>
       </div>
 
-      <p class="about-closing">🦔「大切な生地、一緒に見守るよ。」</p>
+      <hr class="about-divider">
+
+      <div class="about-section">
+        <p class="about-heading">📱 パソコンとスマホについて</p>
+        <p>スマホとパソコン、それぞれのFabric Noteは、まだお互いのことを知りません。自動では記録がつながらないので、同じ記録を両方で見たいときは、「バックアップ保存」と「復元」で手をつないであげてください。</p>
+        <p style="margin-top:12px;">⚠️ 復元をすると、今の記録はバックアップの内容に置き換わります。今の記録とバックアップを合体させることはできないので、その点だけ気をつけてくださいね。</p>
+        <p class="about-closing" style="margin-top:12px;">🦔「時々でいいから、バックアップを持たせてあげてね」</p>
+      </div>
+
+      <hr class="about-divider">
+
+      <div class="about-section">
+        <p class="about-heading">🏠 ホーム画面に追加する方法</p>
+        <p>よく使ってくださる方は、ホーム画面に置いてあげると、いつでもワンタップで会いに来られます。</p>
+        <p style="margin-top:12px;"><strong>〈iPhoneの場合〉</strong><br>① Safariでこのページを開く<br>② 下の「共有」ボタン(四角に上矢印のアイコン)をタップ<br>③ 「ホーム画面に追加」を選択<br>④ 右上の「追加」をタップして完了</p>
+        <p style="margin-top:12px;"><strong>〈Androidの場合〉</strong><br>① Chromeでこのページを開く<br>② 右上の「⋮」(縦三点リーダー)をタップ<br>③ 「ホーム画面に追加」または「アプリをインストール」を選択</p>
+        <p style="margin-top:12px;">※ iPhoneはSafari、AndroidはChromeでないと、うまく出てこないことがあります。</p>
+        <p class="about-closing" style="margin-top:12px;">🦔「ホーム画面で待ってるね」</p>
+      </div>
+
+      <hr class="about-divider">
+
+      <p class="about-closing">🦔「大切な生地、一緒に見守るよ」</p>
     </div>`;
 }
 
