@@ -202,7 +202,17 @@
 
   /* detail */
   .detail-photos{ display:flex; gap:8px; overflow-x:auto; margin-bottom:12px; }
-  .detail-photos img{ width:96px; height:96px; border-radius:10px; object-fit:cover; flex-shrink:0; }
+  .detail-photos img{ width:96px; height:96px; border-radius:10px; object-fit:cover; flex-shrink:0; cursor:pointer; }
+  #photo-lightbox{
+    position:fixed; inset:0; background:rgba(0,0,0,0.82); z-index:60;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  #photo-lightbox.show{ display:flex; }
+  #photo-lightbox img{ max-width:100%; max-height:100%; border-radius:8px; object-fit:contain; }
+  #photo-lightbox .lightbox-close{
+    position:absolute; top:16px; right:18px; color:#fff; font-size:26px;
+    background:none; border:none; cursor:pointer; line-height:1;
+  }
   .detail-row{ display:flex; justify-content:space-between; font-size:15px; padding:7px 0; border-bottom:1px solid var(--border); }
   .detail-row:last-child{ border-bottom:none; }
   #material-list .detail-row, #tag-list .detail-row{ font-size:16px; }
@@ -223,7 +233,10 @@
 <div id="topbar">
   <button class="icon-btn" id="btn-menu" aria-label="メニュー">☰</button>
   <span class="title" id="page-title">Fabric Note</span>
-  <button class="icon-btn" id="btn-add" aria-label="追加">＋</button>
+  <span style="display:flex; align-items:center; gap:2px;">
+    <button class="icon-btn" id="btn-sort" aria-label="並び替え">↕</button>
+    <button class="icon-btn" id="btn-add" aria-label="追加">＋</button>
+  </span>
 </div>
 
 <div id="filterbar"></div>
@@ -242,6 +255,10 @@
 </div>
 
 <div id="toast"></div>
+<div id="photo-lightbox">
+  <button class="lightbox-close" id="lightbox-close" aria-label="閉じる">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
 
 <script>
 const STORAGE_KEY = "fabricStockData";
@@ -315,6 +332,7 @@ function adjustRemaining(fabricId, delta){
 let currentView = "home";
 let activeMaterial = "すべて";
 let activeTag = null;
+let sortMode = "material"; // material | dateDesc | dateAsc | shopAsc | shopDesc
 
 const listEl = document.getElementById("list");
 const filterbarEl = document.getElementById("filterbar");
@@ -364,11 +382,45 @@ btnAddEl.onclick = ()=>{
   }
 };
 
+/* ---------- sort button ---------- */
+const btnSortEl = document.getElementById("btn-sort");
+btnSortEl.onclick = openSortSheet;
+const SORT_LABELS = {
+  material: "素材別(現在の表示)",
+  dateDesc: "購入日が新しい順",
+  dateAsc: "購入日が古い順",
+  shopAsc: "お店順(あ→ん)",
+  shopDesc: "お店順(ん→あ)"
+};
+function openSortSheet(){
+  const html = `
+    <div class="sheet-title"><span>並び替え</span><span id="close-sheet" style="cursor:pointer; color:var(--text-sub);">✕</span></div>
+    <div id="sort-options">
+      ${Object.keys(SORT_LABELS).map(key=>`
+        <div class="detail-row" data-sort="${key}" style="cursor:pointer;">
+          <span class="k">${SORT_LABELS[key]}</span>
+          <span>${sortMode===key ? "✓" : ""}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+  const wrap = openSheet(html);
+  wrap.querySelector("#close-sheet").onclick = ()=> closeSheet(wrap);
+  wrap.querySelectorAll("[data-sort]").forEach(el=>{
+    el.onclick = ()=>{
+      sortMode = el.dataset.sort;
+      closeSheet(wrap);
+      renderHome();
+    };
+  });
+}
+
 /* ---------- render router ---------- */
 function render(){
   document.body.classList.toggle("view-history", currentView === "history");
   pageTitleEl.classList.toggle("brand-font", currentView === "home");
   btnAddEl.style.visibility = (currentView === "guide" || currentView === "about") ? "hidden" : "visible";
+  btnSortEl.style.visibility = (currentView === "home") ? "visible" : "hidden";
   if(currentView === "home"){
     pageTitleEl.textContent = "Fabric Note";
     renderHome();
@@ -427,43 +479,55 @@ function renderHome(){
   }
   emptyMsgEl.style.display = "none";
 
-  // group by material
-  const groups = {};
-  fabrics.forEach(f=>{
-    if(!groups[f.material]) groups[f.material] = [];
-    groups[f.material].push(f);
-  });
-
   let html = "";
-  Object.keys(groups).forEach(mat=>{
-    html += `<div class="group-title">${mat}</div>`;
-    groups[mat].forEach(f=>{
-      const bought = parseFloat(f.boughtLength)||0;
-      const remain = parseFloat(f.remainingLength)||0;
-      const pct = bought>0 ? Math.max(0,Math.min(100, remain/bought*100)) : 0;
-      const barColor = pct < 25 ? "#EBD7D9" : (pct < 50 ? "#F6E6A6" : "#C8DDBA");
-      const thumb = f.photos && f.photos[0]
-        ? `<img src="${f.photos[0]}">`
-        : `<img src="hedgehog-empty.png" alt="">`;
-      const tagsHtml = (f.tags||[]).map(t=>
-        `<span class="tag-badge" style="background:${getTagColor(t)}; color:${getTagTextColor(t)};">${escapeHtml(t)}</span>`
-      ).join("");
-      html += `
-        <div class="fabric-card" data-id="${f.id}">
-          <div class="thumb">${thumb}</div>
-          <div class="fabric-info">
-            <p class="fabric-name">${escapeHtml(f.name)}</p>
-            <p class="fabric-sub">残り${formatLength(remain)}m / 購入時${formatLength(bought)}m</p>
-            <div class="bar-bg"><div class="bar-fill" style="width:${pct}%; background:${barColor};"></div></div>
-            <div>${tagsHtml}</div>
-          </div>
-        </div>`;
+  if(sortMode === "material"){
+    // group by material
+    const groups = {};
+    fabrics.forEach(f=>{
+      if(!groups[f.material]) groups[f.material] = [];
+      groups[f.material].push(f);
     });
-  });
+    Object.keys(groups).forEach(mat=>{
+      html += `<div class="group-title">${mat}</div>`;
+      groups[mat].forEach(f=>{ html += renderFabricCard(f); });
+    });
+  } else {
+    const sorted = [...fabrics].sort((a,b)=>{
+      if(sortMode === "dateDesc") return (b.purchaseDate||"").localeCompare(a.purchaseDate||"");
+      if(sortMode === "dateAsc") return (a.purchaseDate||"").localeCompare(b.purchaseDate||"");
+      if(sortMode === "shopAsc") return (a.shop||"").localeCompare(b.shop||"", "ja");
+      if(sortMode === "shopDesc") return (b.shop||"").localeCompare(a.shop||"", "ja");
+      return 0;
+    });
+    sorted.forEach(f=>{ html += renderFabricCard(f); });
+  }
   listEl.innerHTML = html;
   listEl.querySelectorAll(".fabric-card").forEach(el=>{
     el.onclick = ()=> openFabricDetail(el.dataset.id);
   });
+}
+
+function renderFabricCard(f){
+  const bought = parseFloat(f.boughtLength)||0;
+  const remain = parseFloat(f.remainingLength)||0;
+  const pct = bought>0 ? Math.max(0,Math.min(100, remain/bought*100)) : 0;
+  const barColor = pct < 25 ? "#EBD7D9" : (pct < 50 ? "#F6E6A6" : "#C8DDBA");
+  const thumb = f.photos && f.photos[0]
+    ? `<img src="${f.photos[0]}">`
+    : `<img src="hedgehog-empty.png" alt="">`;
+  const tagsHtml = (f.tags||[]).map(t=>
+    `<span class="tag-badge" style="background:${getTagColor(t)}; color:${getTagTextColor(t)};">${escapeHtml(t)}</span>`
+  ).join("");
+  return `
+    <div class="fabric-card" data-id="${f.id}">
+      <div class="thumb">${thumb}</div>
+      <div class="fabric-info">
+        <p class="fabric-name">${escapeHtml(f.name)}</p>
+        <p class="fabric-sub">残り${formatLength(remain)}m / 購入時${formatLength(bought)}m</p>
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%; background:${barColor};"></div></div>
+        <div>${tagsHtml}</div>
+      </div>
+    </div>`;
 }
 
 function moveItem(arr, idx, dir){
@@ -600,7 +664,7 @@ function renderAbout(){
       </div>
 
 
-      <div class="about-section">
+      <div class="about-section" style="margin-top:24px;">
         <p class="about-heading">🔒 データについて</p>
         <p>Fabric Noteに登録したデータは、すべてお使いの端末内だけに保存されます。外部サーバーへ送信されたり、共有されたりすることはありません。安心してご利用ください。</p>
       </div>
@@ -665,6 +729,12 @@ function renderSettings(){
       </div>
       <input type="file" id="file-import" accept="application/json" style="display:none;">
 
+      <div class="section-title" style="margin-top:24px;">生地一覧をExcelで書き出す</div>
+      <p style="font-size:12px; color:var(--text-mute); margin:0 0 8px;">
+        今登録されている生地の一覧を、WPS OfficeやExcelでそのまま開けるファイルとして保存します。
+      </p>
+      <button class="btn btn-secondary" id="btn-export-xlsx">生地一覧をExcelで書き出す</button>
+
       <div class="section-title" style="margin-top:24px;">アプリの調子が悪いとき</div>
       <p style="font-size:12px; color:var(--text-mute); margin:0 0 8px;">
         表示がおかしい・更新されないなどの不具合がある時にお試しください。
@@ -677,6 +747,7 @@ function renderSettings(){
   document.getElementById("btn-export").onclick = exportBackup;
   document.getElementById("btn-import").onclick = ()=> document.getElementById("file-import").click();
   document.getElementById("file-import").onchange = importBackup;
+  document.getElementById("btn-export-xlsx").onclick = exportXlsx;
   document.getElementById("btn-cache-reset").onclick = resetAppCache;
 
   const matListEl = document.getElementById("material-list");
@@ -846,6 +917,54 @@ function importBackup(e){
   reader.readAsText(file);
 }
 
+function loadXlsxLib(){
+  if(window.XLSX) return Promise.resolve();
+  return new Promise((resolve, reject)=>{
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+function exportXlsx(){
+  if(state.fabrics.length===0){
+    alert("まだ生地が登録されていません");
+    return;
+  }
+  showToast("書き出し中...");
+  loadXlsxLib().then(()=>{
+    const rows = state.fabrics.map(f=>{
+      const compositionText = (f.composition && f.composition.length)
+        ? f.composition.map(c=> `${c.material||''}${c.percent ? c.percent : ''}`).join('・')
+        : "";
+      return {
+        "生地名": f.name || "",
+        "素材": f.material || "",
+        "残り(m)": parseFloat(f.remainingLength)||0,
+        "購入時(m)": parseFloat(f.boughtLength)||0,
+        "購入日": f.purchaseDate || "",
+        "購入先": f.shop || "",
+        "組成": compositionText,
+        "生地幅": f.width || "",
+        "メモ": f.memo || ""
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+      {wch:20},{wch:12},{wch:8},{wch:8},{wch:12},{wch:14},{wch:16},{wch:8},{wch:30}
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "生地一覧");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `fabric-note-list-${today}.xlsx`);
+    showToast("書き出しました");
+  }).catch(()=>{
+    alert("書き出しに失敗しました。インターネットに接続した状態でもう一度お試しください。");
+  });
+}
+
 function resetAppCache(){
   if(!confirm("表示データ(キャッシュ)をリセットします。生地の登録データは消えません。よろしいですか?")) return;
   const doReload = ()=> location.reload();
@@ -875,6 +994,20 @@ function openSheet(html){
 }
 function closeSheet(wrap){ wrap.remove(); }
 
+/* ---------- photo lightbox ---------- */
+const lightboxEl = document.getElementById("photo-lightbox");
+const lightboxImgEl = document.getElementById("lightbox-img");
+function openLightbox(src){
+  lightboxImgEl.src = src;
+  lightboxEl.classList.add("show");
+}
+function closeLightbox(){
+  lightboxEl.classList.remove("show");
+  lightboxImgEl.src = "";
+}
+document.getElementById("lightbox-close").onclick = closeLightbox;
+lightboxEl.addEventListener("click", (e)=>{ if(e.target===lightboxEl) closeLightbox(); });
+
 /* ---------- photo resize helper ---------- */
 function resizeImage(file, maxDim=900){
   return new Promise((resolve)=>{
@@ -888,7 +1021,7 @@ function resizeImage(file, maxDim=900){
         const canvas = document.createElement("canvas");
         canvas.width = w; canvas.height = h;
         canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.8));
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
       };
       img.src = reader.result;
     };
@@ -1201,6 +1334,9 @@ function openFabricDetail(id){
     <button class="btn btn-secondary" id="copy-fabric">色違いをコピーして追加</button>
   `;
   const wrap = openSheet(html);
+  wrap.querySelectorAll(".detail-photos img").forEach(img=>{
+    img.onclick = ()=> openLightbox(img.src);
+  });
   wrap.querySelector("#close-sheet").onclick = ()=> closeSheet(wrap);
   wrap.querySelector("#add-usage").onclick = ()=>{ closeSheet(wrap); openUsageForm(f.id); };
   wrap.querySelector("#edit-fabric").onclick = ()=>{ closeSheet(wrap); openFabricForm(f); };
