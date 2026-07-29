@@ -72,7 +72,7 @@
   .info-page{ padding:8px 20px 28px; }
   .info-hero{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:20px 10px 8px; }
   .info-hero img{ width:110px; height:110px; object-fit:contain; margin-bottom:10px; }
-  .info-hero .info-lead{ font-size:14px; color:var(--text-sub); max-width:280px; margin:0 0 20px; }
+  .info-hero .info-lead{ font-size:14px; color:var(--text-sub); max-width:280px; margin:0 0 8px; }
   .info-brand{ font-size:22px; text-align:center; margin:4px 0 18px; color:var(--text); }
   .guide-item{ display:flex; gap:12px; padding:16px 0; border-bottom:1px solid var(--border); }
   .guide-item:last-child{ border-bottom:none; }
@@ -397,9 +397,9 @@ function openSortSheet(){
     <div class="sheet-title"><span>並び替え</span><span id="close-sheet" style="cursor:pointer; color:var(--text-sub);">✕</span></div>
     <div id="sort-options">
       ${Object.keys(SORT_LABELS).map(key=>`
-        <div class="detail-row" data-sort="${key}" style="cursor:pointer;">
+        <div class="detail-row" data-sort="${key}" style="cursor:pointer; font-size:16px;">
           <span class="k">${SORT_LABELS[key]}</span>
-          <span>${sortMode===key ? "✓" : ""}</span>
+          <span style="color:var(--accent-mid); font-weight:600;">${sortMode===key ? "✓" : ""}</span>
         </div>
       `).join("")}
     </div>
