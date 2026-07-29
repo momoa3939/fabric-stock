@@ -10,7 +10,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700&display=swap" rel="stylesheet">
 <style>
   :root{
     --accent:#CFDFDE;
@@ -45,8 +45,9 @@
     background:#fff; border-bottom:1px solid var(--border);
     padding:12px 14px;
   }
-  #topbar .title{font-weight:600; font-size:17px; font-family:"Zen Maru Gothic",sans-serif;}
-  .brand-font{ font-family:"Marcellus",serif; letter-spacing:0.03em; }
+  #topbar .title{font-weight:600; font-size:17px; font-family:"Hiragino Sans","Meiryo",sans-serif;}
+  .brand-font{ font-family:"Zen Maru Gothic",sans-serif; font-weight:700; letter-spacing:0; }
+  #topbar .title.brand-font{ font-family:"Zen Maru Gothic",sans-serif; font-weight:700; font-size:22px; }
   .icon-btn{
     background:none; border:none; font-size:20px; color:var(--accent-dark);
     padding:4px 8px; cursor:pointer; line-height:1;
@@ -562,7 +563,7 @@ function renderGuide(){
     <div class="info-page">
       <div class="info-hero">
         <img src="hedgehog-fabric.png" alt="">
-        <p class="info-lead">はじめてでも大丈夫。<br>Fabric Noteの基本的な使い方をご紹介します。</p>
+        <p class="info-lead">初めてでも大丈夫。<br>Fabric Noteの基本的な<br>使い方をご紹介します。</p>
       </div>
       ${items.map((it,i)=>`
         <div class="guide-item">
@@ -591,10 +592,9 @@ function renderAbout(){
       </div>
       <p class="info-brand brand-font">Fabric Note</p>
       <div class="about-intro">
-        <p class="about-copy">お気に入りの生地を、<br>やさしく管理するためのアプリです。</p>
-        <p class="about-copy">使いたい生地。<br>買ったばかりの生地。<br>大切に残しておきたい生地。</p>
-        <p class="about-copy">「あの生地、どこにしまったかな？」</p>
-        <p class="about-copy">そんな時に、<br>そっと役立つノートになれたら嬉しいです。</p>
+        <p class="about-copy">お気に入りの生地を<br>いつでも手のひらに。</p>
+        <p class="about-copy">使いたい生地も<br>買ったばかりの生地も<br>大切に残しておきたい生地も。</p>
+        <p class="about-copy">Fabric Noteは<br>そんな毎日に寄り添うアプリです。</p>
       </div>
 
 
