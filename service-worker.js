@@ -1,4 +1,4 @@
-const CACHE_NAME = "fabric-stock-v3";
+const CACHE_NAME = "fabric-stock-v4";
 const APP_SHELL = [
   "./index.html",
   "./manifest.json",
@@ -6,7 +6,8 @@ const APP_SHELL = [
   "./icon-512.png",
   "./icon-192-maskable.png",
   "./icon-512-maskable.png",
-  "./hedgehog-empty.png"
+  "./hedgehog-empty.png",
+  "./hedgehog-fabric.png"
 ];
 
 self.addEventListener("install", (event) => {

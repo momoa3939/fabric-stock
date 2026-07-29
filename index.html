@@ -82,7 +82,8 @@
   .guide-body .guide-title{ font-size:15px; font-weight:600; margin:0 0 4px; }
   .guide-body p{ font-size:14px; color:var(--text-sub); margin:0 0 4px; line-height:1.6; }
   .guide-body .guide-tip{ font-size:13px; color:var(--text-mute); margin:6px 0 0; }
-  .about-copy{ font-size:14px; color:var(--text); line-height:1.9; text-align:center; margin:0 0 22px; }
+  .about-copy{ font-size:14px; color:var(--text); line-height:1.9; text-align:left; margin:0 0 14px; }
+  .about-copy:last-of-type{ margin-bottom:24px; }
   .about-section{ margin:0 0 18px; }
   .about-section .about-heading{ font-size:14px; font-weight:600; margin:0 0 6px; display:flex; align-items:center; gap:6px; }
   .about-section p{ font-size:13.5px; color:var(--text-sub); line-height:1.8; margin:0; }
@@ -540,31 +541,31 @@ function renderGuide(){
 
   const items = [
     { title:"生地を登録する", tip:"📷 写真は自動で軽量化されるので、スマホの容量を気にせず登録できます。",
-      body:"右上の「＋」から新しい生地を登録できます。写真・素材・用途・長さ・購入情報などを入力して、お気に入りの生地を記録しましょう。" },
+      body:["右上の「＋」から新しい生地を登録できます。","写真・素材・用途・長さ・購入情報などを入力して、お気に入りの生地を記録しましょう。"] },
     { title:"一覧から探す", tip:null,
-      body:"登録した生地は一覧で確認できます。素材やタグで絞り込めるので、探したい生地もすぐに見つかります。上部のチップをタップして切り替えてください。" },
+      body:["登録した生地は一覧で確認できます。","素材やタグで絞り込めるので、探したい生地もすぐに見つかります。","上部のチップをタップして切り替えてください。"] },
     { title:"使った履歴を記録する", tip:null,
-      body:"生地を使ったら「使った履歴」を記録しましょう。使った長さに合わせて、残りのメートル数が自動で更新されます。在庫管理がぐっと楽になります。" },
+      body:["生地を使ったら「使った履歴」を記録しましょう。","使った長さに合わせて、残りのメートル数が自動で更新されます。","在庫管理がぐっと楽になります。"] },
     { title:"素材・タグを管理する", tip:null,
-      body:"設定画面から素材や用途タグの追加・編集ができます。よく使う分類を登録しておくと、生地を探しやすくなります。" },
+      body:["設定画面から素材や用途タグの追加・編集ができます。","よく使う分類を登録しておくと、生地を探しやすくなります。"] },
     { title:"バックアップを取る", tip:null,
-      body:"設定画面の「データのバックアップ」から、登録データを保存できます。機種変更や万が一に備えて、定期的なバックアップをおすすめします。" },
+      body:["設定画面の「データのバックアップ」から、登録データを保存できます。","機種変更や万が一に備えて、定期的なバックアップをおすすめします。"] },
     { title:"うまく動かないときは", tip:null,
-      body:"表示がおかしいときやエラーが発生したときは、設定画面の「アプリの調子が悪いとき」をご確認ください。多くのトラブルは、この画面から改善できます。" }
+      body:["表示がおかしいときやエラーが発生したときは、設定画面の「アプリの調子が悪いとき」をご確認ください。","多くのトラブルは、この画面から改善できます。"] }
   ];
 
   listEl.innerHTML = `
     <div class="info-page">
       <div class="info-hero">
-        <img src="hedgehog-empty.png" alt="">
-        <p class="info-lead">はじめてでも大丈夫。Fabric Noteの基本的な使い方をご紹介します。</p>
+        <img src="hedgehog-fabric.png" alt="">
+        <p class="info-lead">はじめてでも大丈夫。<br>Fabric Noteの基本的な使い方をご紹介します。</p>
       </div>
       ${items.map((it,i)=>`
         <div class="guide-item">
           <div class="guide-num">${i+1}</div>
           <div class="guide-body">
             <p class="guide-title">${escapeHtml(it.title)}</p>
-            <p>${escapeHtml(it.body)}</p>
+            ${it.body.map(line=>`<p>${escapeHtml(line)}</p>`).join("")}
             ${it.tip ? `<p class="guide-tip">${escapeHtml(it.tip)}</p>` : ""}
           </div>
         </div>`).join("")}
@@ -582,13 +583,14 @@ function renderAbout(){
   listEl.innerHTML = `
     <div class="info-page">
       <div class="info-hero">
-        <img src="hedgehog-empty.png" alt="">
+        <img src="hedgehog-fabric.png" alt="">
       </div>
       <p class="info-brand brand-font">Fabric Note</p>
-      <p class="about-copy">お気に入りの生地を、やさしく管理するためのアプリです。<br>
-      使いたい生地、買ったばかりの生地、大切に残しておきたい生地。<br>
-      「あの生地、どこにしまったかな？」<br>
-      そんな時に、そっと役立つノートになれたら嬉しいです。</p>
+      <p class="about-copy">お気に入りの生地を、やさしく管理するためのアプリです。</p>
+      <p class="about-copy">使いたい生地、買ったばかりの生地、大切に残しておきたい生地。<br>
+      「あの生地、どこにしまったかな？」</p>
+      <p class="about-copy">そんな時に、そっと役立つノートになれたら嬉しいです。</p>
+
 
       <div class="about-section">
         <p class="about-heading">🔒 データについて</p>
