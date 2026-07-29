@@ -72,8 +72,8 @@
   .info-page{ padding:8px 20px 28px; }
   .info-hero{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:20px 10px 8px; }
   .info-hero img{ width:110px; height:110px; object-fit:contain; margin-bottom:10px; }
-  .info-hero .info-lead{ font-size:14px; color:var(--text-sub); max-width:280px; margin:0 0 8px; }
-  .info-brand{ font-size:22px; text-align:center; margin:4px 0 18px; color:var(--text); }
+  .info-hero .info-lead{ font-size:14px; color:var(--text-sub); max-width:280px; margin:0 0 20px; }
+  .info-brand{ font-size:22px; text-align:center; margin:0 0 18px; color:var(--text); }
   .guide-item{ display:flex; gap:12px; padding:16px 0; border-bottom:1px solid var(--border); }
   .guide-item:last-child{ border-bottom:none; }
   .guide-num{
@@ -321,6 +321,14 @@ function formatLength(v){
   if(isNaN(n)) return "";
   return n.toFixed(1);
 }
+function getRemainWidth(f){
+  return (f.remainingWidth && f.remainingWidth.trim()) ? f.remainingWidth : (f.width || "");
+}
+function remainDisplay(f){
+  const w = getRemainWidth(f);
+  const len = formatLength(f.remainingLength||0);
+  return w ? `${escapeHtml(w)}×${len}m` : `${len}m`;
+}
 function adjustRemaining(fabricId, delta){
   const f = state.fabrics.find(x=>x.id===fabricId);
   if(!f) return;
@@ -399,7 +407,7 @@ function openSortSheet(){
       ${Object.keys(SORT_LABELS).map(key=>`
         <div class="detail-row" data-sort="${key}" style="cursor:pointer; font-size:16px;">
           <span class="k">${SORT_LABELS[key]}</span>
-          <span style="color:var(--accent-mid); font-weight:600;">${sortMode===key ? "✓" : ""}</span>
+          <span style="display:inline-flex;">${sortMode===key ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 13 9 18 20 6"></polyline></svg>' : ""}</span>
         </div>
       `).join("")}
     </div>
@@ -523,7 +531,7 @@ function renderFabricCard(f){
       <div class="thumb">${thumb}</div>
       <div class="fabric-info">
         <p class="fabric-name">${escapeHtml(f.name)}</p>
-        <p class="fabric-sub">残り${formatLength(remain)}m / 購入時${formatLength(bought)}m</p>
+        <p class="fabric-sub">残り ${remainDisplay(f)} / 購入時${formatLength(bought)}m</p>
         <div class="bar-bg"><div class="bar-fill" style="width:${pct}%; background:${barColor};"></div></div>
         <div>${tagsHtml}</div>
       </div>
@@ -614,7 +622,7 @@ function renderGuide(){
       body:["右上の「＋」から新しい生地を登録できます。","写真・素材・用途・長さ・購入情報などを入力して、お気に入りの生地を記録しましょう。"] },
     { title:"一覧から探す", tip:null,
       body:["登録した生地は一覧で確認できます。","素材やタグで絞り込めるので、探したい生地もすぐに見つかります。","上部のチップをタップして切り替えてください。"] },
-    { title:"使った履歴を記録する", tip:null,
+    { title:"使った履歴を記録する", tip:"✂️ L字など複雑な形で残った生地は管理対象外です。残りサイズは、一番大きく取れる長方形のサイズを記録してください。",
       body:["生地を使ったら「使った履歴」を記録しましょう。","使った長さに合わせて、残りのメートル数が自動で更新されます。","在庫管理がぐっと楽になります。"] },
     { title:"素材・タグを管理する", tip:null,
       body:["設定画面から素材や用途タグの追加・編集ができます。","よく使う分類を登録しておくと、生地を探しやすくなります。"] },
@@ -664,7 +672,7 @@ function renderAbout(){
       </div>
 
 
-      <div class="about-section" style="margin-top:24px;">
+      <div class="about-section" style="margin-top:36px;">
         <p class="about-heading">🔒 データについて</p>
         <p>Fabric Noteに登録したデータは、すべてお使いの端末内だけに保存されます。外部サーバーへ送信されたり、共有されたりすることはありません。安心してご利用ください。</p>
       </div>
@@ -1041,7 +1049,7 @@ function openFabricForm(existing, copySource){
       : (existing.composition ? [{material: existing.composition, percent:""}] : [])
   } : (copySource ? {
     id: uid(),
-    name: "",
+    name: copySource.name || "",
     material: copySource.material || (state.materials[0]||""),
     tags: [...(copySource.tags||[])],
     boughtLength: "",
@@ -1081,6 +1089,9 @@ function openFabricForm(existing, copySource){
 
     <label class="field-label">現在の残りメートル数</label>
     <input type="number" id="f-remain" step="0.1" min="0" value="${formatLength(f.remainingLength)}">
+
+    <label class="field-label">残りの幅<span style="color:var(--text-mute); font-weight:400;">(任意)</span></label>
+    <input type="text" id="f-remainwidth" value="${escapeHtml(f.remainingWidth||'')}" placeholder="空欄なら生地幅と同じとして扱われます">
 
     <label class="field-label">購入日</label>
     <input type="date" id="f-date" value="${f.purchaseDate}">
@@ -1254,6 +1265,7 @@ function openFabricForm(existing, copySource){
     f.material = wrap.querySelector("#f-material").value;
     f.boughtLength = Math.max(0, parseFloat(wrap.querySelector("#f-bought").value) || 0).toFixed(1);
     f.remainingLength = Math.max(0, parseFloat(wrap.querySelector("#f-remain").value) || 0).toFixed(1);
+    f.remainingWidth = wrap.querySelector("#f-remainwidth").value.trim();
     f.purchaseDate = wrap.querySelector("#f-date").value;
     f.shop = wrap.querySelector("#f-shop").value.trim();
     f.composition = f.composition.filter(c => (c.material && c.material.trim()) || (c.percent && c.percent.trim()));
@@ -1318,7 +1330,7 @@ function openFabricDetail(id){
     <div>${tagsHtml}</div>
     <div style="margin-top:8px;">
       <div class="detail-row"><span class="k">素材</span><span>${escapeHtml(f.material)}</span></div>
-      <div class="detail-row"><span class="k">残り / 購入時</span><span>${formatLength(f.remainingLength||0)}m / ${formatLength(f.boughtLength||0)}m</span></div>
+      <div class="detail-row"><span class="k">残り / 購入時</span><span>${remainDisplay(f)} / ${formatLength(f.boughtLength||0)}m</span></div>
       <div class="detail-row"><span class="k">購入日</span><span>${f.purchaseDate||"-"}</span></div>
       <div class="detail-row"><span class="k">購入先</span><span>${escapeHtml(f.shop)||"-"}</span></div>
       ${compositionText ? `<div class="detail-row"><span class="k">組成</span><span style="text-align:right; max-width:70%;">${escapeHtml(compositionText)}</span></div>` : ""}
@@ -1355,6 +1367,8 @@ function openUsageForm(preselectFabricId, editId){
     `<option value="${f.id}" ${f.id===(existing?existing.fabricId:preselectFabricId)?'selected':''}>${escapeHtml(f.name)}</option>`
   ).join("");
   const today = new Date().toISOString().slice(0,10);
+  const currentFabric = state.fabrics.find(x=>x.id===(existing?existing.fabricId:preselectFabricId)) || state.fabrics[0];
+  const currentRemainWidth = currentFabric ? getRemainWidth(currentFabric) : "";
 
   const html = `
     <div class="sheet-title"><span>${isEdit?'使った記録を編集':'使った記録を追加'}</span><span id="close-sheet" style="cursor:pointer; color:var(--text-sub);">✕</span></div>
@@ -1364,6 +1378,8 @@ function openUsageForm(preselectFabricId, editId){
     <input type="text" id="u-item" value="${existing?escapeHtml(existing.itemName):''}" placeholder="例: キッズTシャツ 100cm">
     <label class="field-label">使った量(メートル)</label>
     <input type="number" id="u-length" step="0.1" min="0" value="${existing?existing.usedLength:''}" placeholder="例: 0.6">
+    <label class="field-label">残った生地の幅<span style="color:var(--text-mute); font-weight:400;">(変わっていれば)</span></label>
+    <input type="text" id="u-remainwidth" value="" placeholder="今の残り幅: ${escapeHtml(currentRemainWidth||'未設定')}(変更なければ空欄でOK)">
     <label class="field-label">日付</label>
     <input type="date" id="u-date" value="${existing?existing.date:today}">
     <label class="field-label">ひとことメモ<span style="color:var(--text-mute); font-weight:400;">(任意)</span></label>
@@ -1378,6 +1394,7 @@ function openUsageForm(preselectFabricId, editId){
     const usedLength = Math.max(0, parseFloat(wrap.querySelector("#u-length").value) || 0).toString();
     const date = wrap.querySelector("#u-date").value;
     const memo = wrap.querySelector("#u-memo").value.trim();
+    const newRemainWidth = wrap.querySelector("#u-remainwidth").value.trim();
     if(!itemName){ alert("作った物の名前を入力してください"); return; }
     if(isEdit){
       if(!confirm("この内容で上書き保存します。よろしいですか?")) return;
@@ -1398,6 +1415,10 @@ function openUsageForm(preselectFabricId, editId){
     } else {
       state.usageHistory.push({ id: uid(), fabricId, itemName, usedLength, date: date || today, memo });
       adjustRemaining(fabricId, -(parseFloat(usedLength)||0));
+    }
+    if(newRemainWidth){
+      const targetFabric = state.fabrics.find(x=>x.id===fabricId);
+      if(targetFabric) targetFabric.remainingWidth = newRemainWidth;
     }
     saveData();
     closeSheet(wrap);
