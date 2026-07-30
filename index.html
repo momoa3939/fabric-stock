@@ -495,7 +495,10 @@ function renderHome(){
       if(!groups[f.material]) groups[f.material] = [];
       groups[f.material].push(f);
     });
-    Object.keys(groups).forEach(mat=>{
+    // 設定画面で決めた素材リストの並び順でグループを表示する
+    const orderedMats = [...state.materials, ...Object.keys(groups).filter(m=>!state.materials.includes(m))];
+    orderedMats.forEach(mat=>{
+      if(!groups[mat]) return;
       html += `<div class="group-title">${mat}</div>`;
       groups[mat].forEach(f=>{ html += renderFabricCard(f); });
     });
@@ -730,12 +733,14 @@ function renderSettings(){
       <div id="tag-list"></div>
       <button class="btn btn-secondary" id="add-tag" style="margin-top:8px;">＋ 新しいタグを追加</button>
 
-      <div class="section-title" style="margin-top:24px;">データのバックアップ</div>
-      <div style="display:flex; gap:10px; margin-top:8px;">
-        <button class="btn btn-secondary" id="btn-export" style="margin-top:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 8px;"><span style="font-size:22px;">📦</span><span>バックアップ保存</span></button>
-        <button class="btn btn-secondary" id="btn-import" style="margin-top:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 8px;"><span style="font-size:22px;">🔄</span><span>復元する</span></button>
+      <div id="backup-section">
+        <div class="section-title" style="margin-top:24px;">データのバックアップ</div>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button class="btn btn-secondary" id="btn-export" style="margin-top:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 8px;"><span style="font-size:22px;">📦</span><span>バックアップ保存</span></button>
+          <button class="btn btn-secondary" id="btn-import" style="margin-top:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:14px 8px;"><span style="font-size:22px;">🔄</span><span>復元する</span></button>
+        </div>
+        <input type="file" id="file-import" accept="application/json" style="display:none;">
       </div>
-      <input type="file" id="file-import" accept="application/json" style="display:none;">
 
       <div class="section-title" style="margin-top:24px;">生地一覧をExcelで書き出す</div>
       <p style="font-size:12px; color:var(--text-mute); margin:0 0 8px;">
@@ -1001,6 +1006,29 @@ function openSheet(html){
   return wrap;
 }
 function closeSheet(wrap){ wrap.remove(); }
+
+function showBackupReminderModal(){
+  const html = `
+    <div style="text-align:center; padding:8px 4px 4px;">
+      <img src="hedgehog-fabric.png" alt="" style="width:72px; height:72px; object-fit:contain; margin-bottom:10px;">
+      <p style="font-size:15px; color:var(--text); line-height:1.7; margin:0 0 18px;">そろそろ<br>バックアップを取っておこうね</p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" id="backup-later" style="margin-top:0; flex:1;">あとで</button>
+        <button class="btn btn-primary" id="backup-go" style="margin-top:0; flex:1;">今すぐ設定へ</button>
+      </div>
+    </div>
+  `;
+  const wrap = openSheet(html);
+  wrap.querySelector("#backup-later").onclick = ()=> closeSheet(wrap);
+  wrap.querySelector("#backup-go").onclick = ()=>{
+    closeSheet(wrap);
+    navigate("settings");
+    setTimeout(()=>{
+      const el = document.getElementById("backup-section");
+      if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+    }, 50);
+  };
+}
 
 /* ---------- photo lightbox ---------- */
 const lightboxEl = document.getElementById("photo-lightbox");
@@ -1286,6 +1314,15 @@ function openFabricForm(existing, copySource){
     closeSheet(wrap);
     showToast(isEdit ? "保存しました" : "追加しました");
     render();
+
+    if(!isEdit){
+      const count = state.fabrics.length;
+      if(count > 0 && count % 5 === 0 && (state.backupPromptLastCount||0) < count){
+        state.backupPromptLastCount = count;
+        saveData();
+        showBackupReminderModal();
+      }
+    }
   };
 
   if(isEdit){
