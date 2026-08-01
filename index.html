@@ -275,34 +275,97 @@ const STORAGE_KEY = "fabricStockData";
 const DEFAULT_MATERIALS = ["布帛","ミニ裏毛","裏毛","天竺","スムース"];
 const DEFAULT_TAGS = ["ショップ用","自宅用"];
 
-/* ---------- StorageService(保存処理の窓口。今はlocalStorageのみ実装) ----------
-   ・画面側のコードは load/save の中身がlocalStorageかIndexedDBかを意識しない
-   ・将来IndexedDBに切り替える際は、この中身だけを差し替える予定
-   ・現時点では動作は完全に従来通り(挙動を変えないリファクタのみ) */
+/* ---------- StorageService(保存処理の窓口。IndexedDB対応版) ----------
+   ・保存先はIndexedDB(容量に余裕があり、写真付きデータでも安心して使える)
+   ・IndexedDBが空でlocalStorageにデータが残っている場合、初回起動時のみ
+     自動でIndexedDBへコピーする(移行後もlocalStorage側はすぐには消さない
+     =念のためのバックアップとしてそのまま残す)
+   ・万が一IndexedDBが使えない/失敗した場合はlocalStorageに自動フォールバック */
 const StorageService = {
-  load(key, fallback){
+  _dbPromise: null,
+
+  _openDB(){
+    if(this._dbPromise) return this._dbPromise;
+    this._dbPromise = new Promise((resolve, reject)=>{
+      try{
+        const req = indexedDB.open("fabricStockDB", 1);
+        req.onupgradeneeded = (e)=>{
+          const db = e.target.result;
+          if(!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
+        };
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> reject(req.error);
+      }catch(e){ reject(e); }
+    });
+    return this._dbPromise;
+  },
+  _idbGet(key){
+    return this._openDB().then(db => new Promise((resolve, reject)=>{
+      const tx = db.transaction("kv", "readonly");
+      const req = tx.objectStore("kv").get(key);
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    }));
+  },
+  _idbSet(key, value){
+    return this._openDB().then(db => new Promise((resolve, reject)=>{
+      const tx = db.transaction("kv", "readwrite");
+      tx.objectStore("kv").put(value, key);
+      tx.oncomplete = ()=> resolve();
+      tx.onerror = ()=> reject(tx.error);
+    }));
+  },
+
+  /* 起動時専用:非同期でデータを読み込む。IndexedDBに無ければlocalStorageから
+     自動移行(コピーのみ。localStorage側は削除しない) */
+  async loadAsync(key, fallback){
     try{
+      const idbValue = await this._idbGet(key);
+      if(idbValue !== undefined && idbValue !== null) return idbValue;
       const raw = localStorage.getItem(key);
-      if(raw) return JSON.parse(raw);
-    }catch(e){}
+      if(raw){
+        const parsed = JSON.parse(raw);
+        await this._idbSet(key, parsed);
+        return parsed;
+      }
+    }catch(e){
+      console.error("StorageService.loadAsync: IndexedDB失敗、localStorageにフォールバック", e);
+      try{
+        const raw = localStorage.getItem(key);
+        if(raw) return JSON.parse(raw);
+      }catch(e2){}
+    }
     return fallback;
   },
+
+  /* 保存:呼び出し側は今まで通りawait不要(裏側で非同期実行)。
+     IndexedDB保存に失敗した場合のみ、保険としてlocalStorageにも書く */
   save(key, value){
-    localStorage.setItem(key, JSON.stringify(value));
+    this._idbSet(key, value).catch(e=>{
+      console.error("StorageService.save: IndexedDB失敗、localStorageにフォールバック", e);
+      try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e2){}
+    });
   }
 };
 
-function loadData(){
-  return StorageService.load(STORAGE_KEY, { fabrics: [], usageHistory: [], materials: [...DEFAULT_MATERIALS], tags: [...DEFAULT_TAGS] });
+async function loadData(){
+  return await StorageService.loadAsync(STORAGE_KEY, { fabrics: [], usageHistory: [], materials: [...DEFAULT_MATERIALS], tags: [...DEFAULT_TAGS] });
 }
 function saveData(){ StorageService.save(STORAGE_KEY, state); }
 
-/* ---------- 購入先オートコンプリート履歴(生地データとは別キーで管理) ---------- */
+/* ---------- 購入先オートコンプリート履歴(生地データとは別キーで管理) ----------
+   頻繁に呼ばれる(オートコンプリート表示のたび)ため、起動時に一度だけ
+   非同期で読み込んでメモリにキャッシュし、以降はメモリ上で読み書きする。
+   保存(永続化)はキャッシュ更新のたびに裏側で非同期実行される。 */
 const SHOP_HISTORY_KEY = "fabricStockShopHistory";
+let shopHistoryCache = [];
 function loadShopHistory(){
-  return StorageService.load(SHOP_HISTORY_KEY, []);
+  return shopHistoryCache;
 }
-function saveShopHistory(list){ StorageService.save(SHOP_HISTORY_KEY, list); }
+function saveShopHistory(list){
+  shopHistoryCache = list;
+  StorageService.save(SHOP_HISTORY_KEY, list);
+}
 function addShopToHistory(name){
   if(!name) return;
   let list = loadShopHistory().filter(s => s !== name);
@@ -321,17 +384,20 @@ const NATURE_PALETTE_TEXT = {
   "#C8DDBA":"#4f6b41", "#F6E6A6":"#7a6a2f", "#CFC9BE":"#5f5a4e", "#BFD6E8":"#3f5a6b"
 };
 
-let state = loadData();
-if(!state.materials) state.materials = [...DEFAULT_MATERIALS];
-if(!state.tags) state.tags = [...DEFAULT_TAGS];
-if(!state.tagColors) state.tagColors = {};
-state.tags.forEach((t,i)=>{
-  if(!state.tagColors[t]){
-    if(t === "ショップ用") state.tagColors[t] = "#F6E6A6";
-    else if(t === "自宅用") state.tagColors[t] = "#CFC9BE";
-    else state.tagColors[t] = NATURE_PALETTE[i % NATURE_PALETTE.length];
-  }
-});
+let state = null; // 起動時にinitApp()内で非同期に読み込む(IndexedDB対応のため)
+
+function normalizeState(){
+  if(!state.materials) state.materials = [...DEFAULT_MATERIALS];
+  if(!state.tags) state.tags = [...DEFAULT_TAGS];
+  if(!state.tagColors) state.tagColors = {};
+  state.tags.forEach((t,i)=>{
+    if(!state.tagColors[t]){
+      if(t === "ショップ用") state.tagColors[t] = "#F6E6A6";
+      else if(t === "自宅用") state.tagColors[t] = "#CFC9BE";
+      else state.tagColors[t] = NATURE_PALETTE[i % NATURE_PALETTE.length];
+    }
+  });
+}
 function getTagColor(name){ return (state.tagColors && state.tagColors[name]) || NATURE_PALETTE[0]; }
 function getTagTextColor(name){ return NATURE_PALETTE_TEXT[getTagColor(name)] || "#3f5654"; }
 function formatLength(v){
@@ -1496,8 +1562,15 @@ function openUsageForm(preselectFabricId, editId){
   };
 }
 
-/* ---------- init ---------- */
-render();
+/* ---------- init ----------
+   IndexedDBは非同期のため、データの読み込みが終わってから初回描画する */
+async function initApp(){
+  state = await loadData();
+  normalizeState();
+  shopHistoryCache = await StorageService.loadAsync(SHOP_HISTORY_KEY, []);
+  render();
+}
+initApp();
 
 if("serviceWorker" in navigator){
   window.addEventListener("load", ()=>{
