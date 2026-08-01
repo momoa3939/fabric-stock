@@ -1,4 +1,4 @@
-const CACHE_NAME = "fabric-stock-v5";
+const CACHE_NAME = "fabric-stock-v6";
 const APP_SHELL = [
   "./index.html",
   "./manifest.json",

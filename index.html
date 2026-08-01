@@ -226,6 +226,15 @@
     background:var(--accent-dark); color:#fff; padding:10px 18px; border-radius:20px;
     font-size:14px; z-index:60; display:none;
   }
+  #btn-scroll-top{
+    position:fixed; right:16px; bottom:24px; width:44px; height:44px;
+    border-radius:50%; background:var(--card); border:1px solid var(--border);
+    box-shadow:0 2px 8px rgba(0,0,0,0.12); color:var(--text-sub);
+    font-size:20px; display:none; align-items:center; justify-content:center;
+    z-index:25; opacity:0; transition:opacity 0.2s ease;
+  }
+  #btn-scroll-top.show{ display:flex; opacity:1;
+  }
 </style>
 </head>
 <body>
@@ -242,6 +251,7 @@
 <div id="filterbar"></div>
 <div id="tagfilterbar"></div>
 <div id="list"></div>
+<button id="btn-scroll-top" aria-label="上に戻る">↑</button>
 <div id="empty-msg" style="display:none;">まだ生地が登録されていません。右上の＋から追加してね。</div>
 
 <div id="overlay"></div>
@@ -388,6 +398,19 @@ btnAddEl.onclick = ()=>{
   } else {
     openFabricForm();
   }
+};
+
+/* ---------- scroll to top button ---------- */
+const btnScrollTopEl = document.getElementById("btn-scroll-top");
+window.addEventListener("scroll", ()=>{
+  if(window.scrollY > 300){
+    btnScrollTopEl.classList.add("show");
+  } else {
+    btnScrollTopEl.classList.remove("show");
+  }
+}, { passive:true });
+btnScrollTopEl.onclick = ()=>{
+  window.scrollTo({ top:0, behavior:"smooth" });
 };
 
 /* ---------- sort button ---------- */
@@ -695,7 +718,7 @@ function renderAbout(){
         <p class="about-heading">📱 パソコンとスマホについて</p>
         <p>スマホとパソコン、それぞれのFabric Noteは、まだお互いのことを知りません。自動では記録がつながらないので、同じ記録を両方で見たいときは、「バックアップ保存」と「復元」で手をつないであげてください。</p>
         <p style="margin-top:12px;">⚠️ 復元をすると、今の記録はバックアップの内容に置き換わります。今の記録とバックアップを合体させることはできないので、その点だけ気をつけてくださいね。</p>
-        <p class="about-closing" style="margin-top:12px;">🦔「時々でいいから、バックアップを持たせてあげてね」</p>
+        <p class="about-closing" style="margin-top:12px;">🦔「時々でいいから、<br>バックアップを持たせてあげてね」</p>
       </div>
 
       <hr class="about-divider">
