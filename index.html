@@ -275,25 +275,34 @@ const STORAGE_KEY = "fabricStockData";
 const DEFAULT_MATERIALS = ["布帛","ミニ裏毛","裏毛","天竺","スムース"];
 const DEFAULT_TAGS = ["ショップ用","自宅用"];
 
+/* ---------- StorageService(保存処理の窓口。今はlocalStorageのみ実装) ----------
+   ・画面側のコードは load/save の中身がlocalStorageかIndexedDBかを意識しない
+   ・将来IndexedDBに切り替える際は、この中身だけを差し替える予定
+   ・現時点では動作は完全に従来通り(挙動を変えないリファクタのみ) */
+const StorageService = {
+  load(key, fallback){
+    try{
+      const raw = localStorage.getItem(key);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return fallback;
+  },
+  save(key, value){
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+};
+
 function loadData(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  return { fabrics: [], usageHistory: [], materials: [...DEFAULT_MATERIALS], tags: [...DEFAULT_TAGS] };
+  return StorageService.load(STORAGE_KEY, { fabrics: [], usageHistory: [], materials: [...DEFAULT_MATERIALS], tags: [...DEFAULT_TAGS] });
 }
-function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function saveData(){ StorageService.save(STORAGE_KEY, state); }
 
 /* ---------- 購入先オートコンプリート履歴(生地データとは別キーで管理) ---------- */
 const SHOP_HISTORY_KEY = "fabricStockShopHistory";
 function loadShopHistory(){
-  try{
-    const raw = localStorage.getItem(SHOP_HISTORY_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  return [];
+  return StorageService.load(SHOP_HISTORY_KEY, []);
 }
-function saveShopHistory(list){ localStorage.setItem(SHOP_HISTORY_KEY, JSON.stringify(list)); }
+function saveShopHistory(list){ StorageService.save(SHOP_HISTORY_KEY, list); }
 function addShopToHistory(name){
   if(!name) return;
   let list = loadShopHistory().filter(s => s !== name);
